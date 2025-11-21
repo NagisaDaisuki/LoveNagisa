@@ -5,7 +5,7 @@
   <link href="https://love.nagisadaisuki.icu/" rel="alternate" type="text/html"/>
   <link href="https://love.nagisadaisuki.icu/atom.xml" rel="self" type="application/atom+xml"/>
   <id>https://love.nagisadaisuki.icu/</id>
-  <updated>2025-11-21T04:33:13.085Z</updated>
+  <updated>2025-11-21T15:33:27.992Z</updated>
   <language>en</language>
   <entry>
     <title>Markdown Tutorial</title>
@@ -726,7 +726,7 @@ This is another regular paragraph.
 <hr />
 ]]></content>
     <author>
-      <name>Matsuzaka Yuki</name>
+      <name>Kirifuji Nagisa</name>
     </author>
     <category term="Examples"></category>
   </entry>
@@ -795,7 +795,7 @@ This is a note with a custom title.
 <pre><code>The content :spoiler[is hidden **ayyy**]!</code></pre>
 ]]></content>
     <author>
-      <name>Matsuzaka Yuki</name>
+      <name>Kirifuji Nagisa</name>
     </author>
     <category term="Examples"></category>
   </entry>
@@ -882,7 +882,7 @@ draft: false
 </code></pre>
 ]]></content>
     <author>
-      <name>Matsuzaka Yuki</name>
+      <name>Kirifuji Nagisa</name>
     </author>
     <category term="Guides"></category>
   </entry>
@@ -1046,7 +1046,7 @@ draft: false
 <p>Try using Mermaid diagrams in your next technical blog post or project documentation - they will make your content more professional and easier to understand!</p>
 ]]></content>
     <author>
-      <name>Matsuzaka Yuki</name>
+      <name>Kirifuji Nagisa</name>
     </author>
     <category term="Examples"></category>
   </entry>
@@ -1072,7 +1072,7 @@ published: 2023-10-19
 <p>&lt;iframe width="100%" height="468" src="//player.bilibili.com/player.html?bvid=BV1fK4y1s7Qf&amp;p=1&amp;autoplay=0" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true" &amp;autoplay=0&gt; &lt;/iframe&gt;</p>
 ]]></content>
     <author>
-      <name>Matsuzaka Yuki</name>
+      <name>Kirifuji Nagisa</name>
     </author>
     <category term="Examples"></category>
   </entry>
