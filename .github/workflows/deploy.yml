@@ -58,7 +58,7 @@ jobs:
         env:
           # 读取刚才在 Settings 里填的密钥
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          ARGS: "-rltgoDzv0 --delete"
+          ARGS: "-rltgoDzvO --delete"
           # 源目录：
           source: "dist/"
           REMOTE_HOST: ${{ secrets.SERVER_IP }}
