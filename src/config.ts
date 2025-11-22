@@ -269,6 +269,12 @@ export const navBarConfig: NavBarConfig = {
 					external: true,
 					icon: "mdi:git",
 				},
+        {
+          name: "Fortress City",
+          url: "https://nagisadaisuki.github.io",
+          external: true,
+          icon: "material-symbols:link",
+        },
 			],
 		},
 		{
