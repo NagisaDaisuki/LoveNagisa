@@ -6080,7 +6080,7 @@ strncpy(buffer, asctime(&amp;amp;time1), sizeof(buffer)); // 以后直接使用b
 &lt;blockquote&gt;
 &lt;p&gt;使用这些函数包含头文件&amp;lt;setjmp.h&amp;gt;&lt;/p&gt;
 &lt;/blockquote&gt;
-</content:encoded></item><item><title>Useful FFmpeg commands</title><link>https://love.nagisadaisuki.icu/posts/ffmepg_related/</link><guid isPermaLink="true">https://love.nagisadaisuki.icu/posts/ffmepg_related/</guid><description>Was is a cat i saw!?</description><pubDate>Tue, 02 Sep 2025 00:00:00 GMT</pubDate><content:encoded>&lt;h2&gt;FFmpeg 是音、视频处理的一个强大开源工具，它包含许多组件和扩展库，在视频网站和商业软件被大量应用。它还有一个命令行工具，在很多场景下直接使用FFmpeg命令行工具比桌面视频处理软件更简洁高效&lt;/h2&gt;
+</content:encoded></item><item><title>Useful FFmpeg commands</title><link>https://love.nagisadaisuki.icu/posts/ffmepg_related/</link><guid isPermaLink="true">https://love.nagisadaisuki.icu/posts/ffmepg_related/</guid><description>Was it a cat i saw!?</description><pubDate>Tue, 02 Sep 2025 00:00:00 GMT</pubDate><content:encoded>&lt;h2&gt;FFmpeg 是音、视频处理的一个强大开源工具，它包含许多组件和扩展库，在视频网站和商业软件被大量应用。它还有一个命令行工具，在很多场景下直接使用FFmpeg命令行工具比桌面视频处理软件更简洁高效&lt;/h2&gt;
 &lt;p&gt;使用 &lt;code&gt;ffmpeg&lt;/code&gt; 前，可先简单了解下视频处理的一些基本概念：&lt;/p&gt;
 &lt;p&gt;&lt;strong&gt;封装(Container)格式&lt;/strong&gt;：也可翻译为容器，里面包括了视频、音频、字幕等内容。对视频来说，封装格式是mp4、avi、mkv等格式。&lt;/p&gt;
 &lt;p&gt;&lt;strong&gt;流(Stream)&lt;/strong&gt;：stream是指媒体文件中的一个单独的数据通道。一个媒体文件可以包含多个流，如视频、音频、字幕等。ffmpeg本质上是操作和处理这些媒体流，比如提取、分离、合并、转码等。你可以选择特定的流进行处理，或者将多个流合并成一个新的媒体文件。&lt;/p&gt;

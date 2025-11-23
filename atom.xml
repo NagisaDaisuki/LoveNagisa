@@ -5,7 +5,7 @@
   <link href="https://love.nagisadaisuki.icu/" rel="alternate" type="text/html"/>
   <link href="https://love.nagisadaisuki.icu/atom.xml" rel="self" type="application/atom+xml"/>
   <id>https://love.nagisadaisuki.icu/</id>
-  <updated>2025-11-23T10:34:41.391Z</updated>
+  <updated>2025-11-23T15:56:11.232Z</updated>
   <language>en</language>
   <entry>
     <title>Markdown Tutorial</title>
@@ -6121,7 +6121,7 @@ strncpy(buffer, asctime(&amp;time1), sizeof(buffer)); // 以后直接使用buffe
     <id>https://love.nagisadaisuki.icu/posts/ffmepg_related/</id>
     <published>2025-09-02T00:00:00.000Z</published>
     <updated>2025-09-02T00:00:00.000Z</updated>
-    <summary>Was is a cat i saw!?</summary>
+    <summary>Was it a cat i saw!?</summary>
     <content type="html"><![CDATA[<h2>FFmpeg 是音、视频处理的一个强大开源工具，它包含许多组件和扩展库，在视频网站和商业软件被大量应用。它还有一个命令行工具，在很多场景下直接使用FFmpeg命令行工具比桌面视频处理软件更简洁高效</h2>
 <p>使用 <code>ffmpeg</code> 前，可先简单了解下视频处理的一些基本概念：</p>
 <p><strong>封装(Container)格式</strong>：也可翻译为容器，里面包括了视频、音频、字幕等内容。对视频来说，封装格式是mp4、avi、mkv等格式。</p>
