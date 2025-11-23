@@ -122,6 +122,11 @@ export default defineConfig({
 			frames: {
 				showCopyToClipboardButton: false,
 			},
+      shiki: {
+        langAlias: {
+          'C': 'c',
+        },
+      },
 		}),
 		svelte(),
 		sitemap(),
