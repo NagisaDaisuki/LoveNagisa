@@ -5345,7 +5345,7 @@ int main(void) {
 
 ~~~
 
-> 其实在这个例子里面使用 ascii_time非常危险，在编写C语言代码时遇到返回值为指针类型的函数多半要小心是否是返回了一个编译器分配的静态数组指针给你，这会导致在下一次调用这个函数时修改你用指针接收的值，也就是线程不安全的函数，遇到这种情况要及时将静态内存的内容复制出来。
+> 其实在这个例子里面使用 asctime非常危险，在编写C语言代码时遇到返回值为指针类型的函数多半要小心是否是返回了一个编译器分配的静态数组指针给你，这会导致在下一次调用这个函数时修改你用指针接收的值，也就是线程不安全的函数，遇到这种情况要及时将静态内存的内容复制出来。
 
 ~~~C
 time_t time1 = time(NULL);
@@ -5357,4 +5357,896 @@ strncpy(buffer, asctime(&time1), sizeof(buffer)); // 以后直接使用buffer就
 
 `setjmp`和`longjmp`函数提供了一种类似goto语句的机制，但它并不局限于一个函数的作用域之内。这些函数常用于深层嵌套的函数调用链。如果在某个低层的函数中检测到一个错误，可以立即返回到顶层函数，不必向调用链中的每个中间层函数返回一个错误标志。
 
-> 使用这些函数包含头文件<setjmp.h>
+为了使用这些函数必须包含包含头文件<setjmp.h>
+
+~~~c
+int setjmp(jmp_buf state);
+void longjmp(jmp_buf state, int value);
+~~~
+
+声明一个`jmp_buf`变量，调用`setjmp`函数初始化，`setjmp`返回值为零。`setjmp`把程序的状态信息（例如，堆栈指针的当前位置和程序的计数器）保存到跳转缓冲区。调用`setjmp`时所处的函数便称为“顶层”函数。
+
+以后，在顶层函数或其他任何它所调用的函数内的任何地方调用`longjmp`函数，将导致这个被保存的状态重新恢复。`longjmp`的效果就是使执行流通过再次从`setjmp`函数返回，从而立即跳回到顶层函数。
+
+区分`setjmp`函数的两种不同返回方式，当`setjmp`函数第一次被调用时，返回0。当`setjmp`作为`longjmp`的执行结果再次返回时，它的返回值是`longjmp`的第二个参数，它必须是个非0值。通过检查它的返回值可以判断是否调用`longjmp`以及存在多个`longjmp`可以判断是哪个`longjmp`被调用。
+
+### 16.4.1 实例
+
+~~~c
+#include <setjmp.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+// 1. 声明一个 jmp_buf 变量，用于在不同函数之间共享执行环境
+// 必须在 setjmp 和 longjmp 都能访问到的作用域内声明（通常是全局或静态）
+jmp_buf environment;
+
+// 错误代码定义
+#define ERROR_FILE_NOT_FOUND 1
+#define ERROR_DATA_CORRUPTED 2
+
+// 模拟一个可能失败的深层函数
+void process_data(int step);
+// 模拟一个中介函数
+void intermediate_function();
+
+int main(void) {
+
+  // 第一次调用 setjmp, 设置跳转恢复点。
+  int jump_val = setjmp(environment);
+
+  if (jump_val == 0) {
+    // 路径A：正常执行
+    printf("【Main】：第一次调用 setjmp，设置了错误处理点。\n");
+    intermediate_function(); // 开始执行正常业务逻辑
+    printf("【Main】：所有功能正常完成。\n");
+
+  } else {
+    // 路径B，从longjmp跳转回来
+    printf("\n【Main】：发生了非局部跳转！\n");
+
+    switch (jump_val) {
+    case ERROR_DATA_CORRUPTED:
+      printf("错误处理：代码%d，数据处理失败，程序安全终止。\n", jump_val);
+      break;
+    case ERROR_FILE_NOT_FOUND:
+ printf("错误处理：代码%d，文件未找到。\n", jump_val);
+      break;
+    default:
+      printf("错误处理：发生了未知错误。\n");
+      break;
+    }
+  }
+  return EXIT_SUCCESS;
+}
+
+void process_data(int step) {
+  printf("--- Function: process_data ---\n");
+
+  if (step == 1) {
+    printf("Step 1: 正在读取配置文件...\n");
+  } else if (step == 2) {
+    printf("Step 2: 正在处理数据块...\n");
+
+    // 假设这里发生了致命错误！
+    printf("致命错误：数据损坏！\n");
+    // 立即跳转回 setjmp的位置，并将 ERROR_DATA_CORRUPTED 作为返回值传递
+    longjmp(environment, ERROR_DATA_CORRUPTED);
+
+    // 注意：longjmp 后的代码不会被执行
+    printf("这行代码永远不会被执行。\n");
+  }
+}
+
+void intermediate_function() {
+  printf("\n--- Function: intermediate_function ---\n");
+  process_data(1);
+  process_data(2); // 这一步将触发 longjmp
+  printf("Intermediate Function 正常结束。\n");
+}
+~~~
+
+### 16.4.2 何时使用非本地跳转
+
+`setjmp`和`longjmp`并不是绝对必需的，因为总是可以通过返回一个错误代码并在调用函数中对其进行检查来实现相同的效果。返回错误代码的方法有时候不是很方便，特别是当函数已经返回了一些值的时候。
+> 使用setjmp和longjmp必须要遵循某些戒律。不然会像goto一样使用一多会让代码难以理解。
+
+## 16.5 信号
+
+程序中所发生的事件绝大多数都是由**程序本身所引发的**，例如执行各种语句和请求输入。但是，有些程序必须遇到的事件却不是程序本身所引发的。一个常见的例子就是用户中断了程序。如果部分计算好的结果必须进行保存以避免数据的丢失，程序必须预备对这类事件做出反应，虽然它并没有办法预测什么时候会发生这种情况。
+
+信号就是用于这种目的。**信号(Signal)** 表示一种事件，它可能异步发生，也就是并不与程序执行过程的任何事件同步。如果程序并未安排怎样处理一个特定信号，那么当该信号出现时程序就做出一个缺省的反应。标准并未定义这个缺省反应是什么，但绝大多数编译器都选择终止程序。另外，程序可以调用signal函数，或者忽略这个信号，或者设置一个**信号处理函数(signal handler)**，当信号发生时程序就调用这个函数。
+
+### 16.5.1 信号名 <signal.h>
+
+|信号|含义|
+|:----:|:----:|
+|SIGABRT|程序请求异常终止|
+|SIGFPE|发生一个算数错误|
+|SIGILL|检测到非法指令|
+|SIGSEGV|检测到对内存的非法访问|
+|SIGINT|收到一个交互性注意信号|
+|SIGTERM|收到一个终止程序的请求|
+
+**SIGABRT**是一个由`abort`函数所引发的信号，用于终止程序。
+
+至于哪些错误将引发**SIGFPE**信号则取决于编译器。常见的有算术上溢或下溢以及除零错误。有些编译器对这个信号进行了扩展，提供了关于引发这个信号的操作的特定信息。可能对可移植性有影响。
+
+**SIGILL**信号提示CPU试图执行一条非法的指令。这个错误可能由于不正确的编译器设置导致。
+
+**SIGSEGV**信号提示程序试图非法访问内存。有两个最常见的原因：一个是程序试图访问未安装于机器上的内存或者访问操作系统未曾分配给这个程序的内存；另一个是程序违反了内存访问的边界要求。后者可能在那些要求数据边界对齐的机器上发生。
+
+前几个信号是*同步*的，因为它们都是*在程序内部发生的*。尽管无法预测一个算数错误何时将会发生，如所使用相同的数据反复运行这个程序，每次都会在相同的地方发生相同的错误。
+
+最后两个信号**SIGINT**和**SIGTERM**则是*异步*的。它们在*程序的外部产生*，通常是由程序的用户所触发，表示用户试图向程序传达一些信息。
+
+**SIGINT**信号在绝大多数机器中都是当用户试图中断程序时发生的。
+
+**SIGTERM**则是另一种用于请求终止程序的信号。
+
+一种常用的策略是为**SIGINT**定义一个信号处理函数，目的是执行一些日常维护工作并在程序退出前保存数据。但**SIGTERM**则不配备信号处理函数，这样当程序终止时便不必执行这些日常维护工作。
+
+### 16.5.2 处理信号 <signal.h>
+
+通常我们关心的是怎样处理那些自主发生的信号，也就是无法预测其什么时候会发生的信号。**raise**函数用于显式地引发一个信号。
+
+~~~c
+int raise(int sig);
+~~~
+
+调用这个函数将引发它的参数所指定的信号。程序对这类信号的反应和那些自主发生的信号是相同的。可以调用这个函数对信号处理函数进行测试。
+
+> 如果误用可能会实现一种非局部的goto效果。
+
+当一个信号发生时，程序可以使用三种方式对它做出反应。缺省的反应是由编译器定义的，通常是终止程序。程序也可以指定其他行为对信号做出反应：信号可以被忽略，或者程序可以设置一个信号处理函数，当信号发生时调用这个函数。signal函数用于指定程序希望采取的反应。
+
+~~~c
+void (*signal(int sig, void (*handler)(int)))(int);
+~~~
+
+分析这个函数原型，首先省略返回类型，对参数进行研究。
+
+~~~c
+signal(int sig, void (*handler)(int));
+~~~
+
+第一个参数是信号类型，第二个参数是希望为这个信号设置的信号处理函数。这个处理函数是一个函数指针，它所指向的函数接受一个整型参数且没有返回值。当信号发生时，信号的代码作为参数传递给信号处理函数。这个参数运行一个处理函数处理几种不同的信号。
+
+现在将从原型中的去掉参数
+
+~~~c
+void (*signal())(int);
+~~~
+
+**signal**是一个函数，它返回一个函数指针，后者所指向的函数接受一个整型参数且无返回值。事实上signal函数返回一个指向该信号以前的处理函数的指针（被替换前的信号处理函数指针）。如果调用signal失败，例如由于非法的信号代码所致，函数将返回SIG_ERR值。这个值是个宏，在`signal.h`头文件中定义。
+
+`signal.h`头文件海定义了另外两个宏，**SIG_DFL**和**SIG_IGN**，它们可以作为signal函数的第二个参数。**SIG_DFL**恢复对该信号的缺省反应，**SIG_IGN**使该信号被忽略。
+
+总之信号处理函数原型`void (*signal(int sig, void (*handler)(int)))(int);`声明了一个名为signal的函数，它：
+
+1. 接受一个信号编号`int sig`
+2. 接受一个指向信号处理函数的函数指针`void (*handler)(int)`
+3. 返回一个指向旧的信号处理函数的函数指针
+
+用途就是利用`signal()`函数来设置新的信号处理方式，并保留旧的处理函数地址，方便之后恢复。
+
+### 16.5.3 信号处理函数
+
+当一个已经设置了信号处理函数的信号发生时，系统首先恢复对该信号的缺省行为。这样做是为了防止如果信号处理函数内部也发生这个信号可能导致的无限循环。然后，信号处理函数被调用，信号代码作为参数传递给函数。
+
+~~~c
+void my_handler(int sig){
+    // 假设在这里执行了很复杂的操作，并意外再次触发了 SIGINT
+    // 如果系统没有恢复缺省行为，my_handler 就会再次被调用，
+    // 可能导致堆栈溢出或无限递归，喵！
+}
+
+int main(){
+  // 第一次调用signal(), 设置 my_handler
+  signal(SIGINT, my_handler);
+  // ...
+}
+~~~
+
+- 安全机制：当**SIGINT**发生时，系统内部会执行类似`signal(SIGINT,SIG_DFL);`的操作，然后再调用`my_handler`。
+- 如果要保持处理：在信号处理函数的第一行或某处重新调用`signal()`
+
+~~~c
+void my_handler(int sig){
+  signal(sig,my_handler);
+  // 其他处理逻辑
+}
+~~~
+
+信号处理函数可能执行的工作类型是非常有限的。如果信号是异步的，也就是说不是由于调用`abort`或`raise`函数引起的，信号处理函数便不应该调用除signal之外的任何库函数，因为在这种情况下是未定义的。而且信号处理函数除了能向一个类型为`volatile sig_atomic_t`的静态变量赋一个值以外，可能无法访问其他任何静态数据。为了保证真正的安全，信号处理函数所能做的就是对这些变量之一进行设置然后返回。程序的剩余部分必须定期检查变量的值，看看是否有信号发生。
+
+如果信号是异步的（比如硬件错误、来自操作系统的中断，而不是自己调用 raise() 或 abort() 触发的），那么您的信号处理函数几乎不能调用任何标准库函数，除了 signal() 自身。
+
+~~~c
+void unsafe_handler(int sig){
+    // 🚨 危险！在异步信号处理中，调用 printf 是未定义行为！
+    // 运行时环境可能不安全，可能破坏 stdio 库的内部状态。
+    printf("Oops! Signal %d received.\n", sig); 
+    
+    // 🚨 危险！
+    malloc(10); // 堆栈可能处于不完整状态，malloc内部状态可能混乱！
+    
+    // 应该调用什么？只有极少数函数安全，比如 _Exit 或 signal 本身。
+}
+~~~
+
+这些严格的限制是由于信号处理的本质产生的。信号通常用于提示发生了错误。在这些情况下，CPU的行为是精确定义的，在程序中，错误所处的上下文环境可能很不相同，因为它们并不一定能够良好定义。例如当`strcpy`函数正在执行时如果产生一个信号，可能当时目标字符串暂时未以NUL字节终结；或者当一个函数被调用时如果产生一个信号，当时堆栈可能处于不完整的状态。如果依赖这种上下文环境的库函数被调用它们就可能以不可预料的方式失败，很可能引发另一个信号。
+
+访问限制定义了在信号处理函数中保证能够运行的最小功能。类型`sig_atomic_t`定义了一种CPU可以以原子方式访问的数据类型，也就是不可分割的访问单位。例如一台16位的机器可以以原子方式访问一个16位整数，但访问一个32位整数可能需要两个操作。在访问非原子数据的中间步骤时如果产生一个信号可能导致不一致的结果，在信号处理函数中把数据访问限制为原子单位可以消除这种可能性。
+
+- 对特定类型静态变量`volatile sig_atomic_t`的测试
+
+~~~c
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+// 🐱 最佳实践：使用 volatile sig_atomic_t
+// 保证了原子性 (CPU 一次操作完成) 和可见性 (防止编译器优化)。
+volatile sig_atomic_t g_signal_flag = 0;
+// 静态变量默认是0，但如果变量在别的文件，需要声明为 static volatile
+// sig_atomic_t
+
+void safe_handler(int sig) {
+  // 这是信号处理函数唯一应该做的事情：设置标志并快速返回
+  g_signal_flag = sig; // 赋值是原子性的
+  // 最好不要做其他事情了！
+}
+
+int main(void) {
+  signal(SIGINT, safe_handler);
+
+  while (1) {
+    // 程序的其余部分必须定期检查这个标志！
+    if (g_signal_flag != 0) {
+      fprintf(stdout, "\n捕捉到信号 %d, 正在安全退出...\n", g_signal_flag);
+      // 安全地调用库函数进行清理工作
+      exit(g_signal_flag);
+    }
+    // 程序正常运行逻辑
+  }
+  return 0;
+}
+~~~
+
+> 标准表示信号处理函数可以通过调用exit终止程序。用于处理除了**SIGABRT**之外的所有信号的处理函数也可以通过调用abort终止程序。但是由于这两个都是库函数，所以当它们被异步信号处理函数调用时可能无法正常运行。如果必须用这种方式终止程序，注意仍然存在一种微小的可能性导致它失败。如果发生这种情况，函数的失败可能破坏数据或者表现出奇怪的症状，但程序最终将终止。
+
+## 16.6 打印可变参数列表<stdarg.h>
+
+这组函数可用于可变参数列表必须被打印的场合。要求包含头文件`<stdio.h>` `<stdarg.h>`
+
+~~~c
+int vprintf(char const *format, va_list arg);
+int vfprintf(FILE *stream, char const *format, va_list arg);
+int vsprintf(char *buffer, char const *format, va_list arg);
+~~~
+
+> 推荐使用内存更安全的`int vsnprintf(char *str, size_t size, const char *format, va_list ap)`而不是`vsprintf`
+
+#### 例子
+
+用`vprintf`实现打印格式化的log
+
+~~~c
+#include <stdarg.h>
+#include <stdio.h>
+
+void my_log(const char *format, ...){
+  va_list args;
+  va_start(args,format);
+  
+  // 使用vprintf 将格式化字符串和参数列表打印到标准输出
+  printf("LOG: ");
+  vprintf(format,args);
+  printf("\n");
+  
+  va_end(args);
+}
+~~~
+
+用`vfprintf`实现打印格式化log到文本流
+
+~~~c
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+void file_log(FILE *stream, const char *format, ...);
+
+void remove_line(char *str);
+
+int main(void){
+  const char *log = "app.log";
+  FILE *fp = fopen(log,"w");
+  if (fp == NULL){
+    fprintf(stdout,"Failed to open file %s,exit...",log);
+    fclose(fp);
+    exit(1);
+  }
+
+  char name[20],passwd[20];
+  memset(name,0,sizeof(name)); 
+  memset(passwd,0,sizeof(passwd));
+  fputs("Please input your Loginname: \n",stdout);
+  fgets(name,sizeof(name) / sizeof(name[0]), stdin);
+  remove_line(name);
+  fputs("Please input your Loginpasswd: \n",stdout);
+  fgets(passwd,sizeof(passwd) / sizeof(passwd[0]), stdin);
+  remove_line(passwd);
+
+  file_log(fp, "Everything I found great was sunfaded.");
+  file_log(fp, "LoginName: %s", name);
+  file_log(fp, "LoginPasswd: %s", passwd);
+  fclose(fp);
+  return 0;
+}
+
+void file_log(FILE *stream, const char *format, ...){
+  va_list args;
+  va_start(args,format);
+  fprintf(stream,"LOG: ");
+  vfprintf(stream,format,args);
+  fprintf(stream,"\n");
+
+  va_end(args);
+}
+
+void remove_line(char *str){
+  int size = strlen(str);
+  if (size > 0 && str[size - 1] == '\n')
+    str[size - 1] = '\0';
+}
+~~~
+
+使用`vsnprintf` 将格式输出到字符数组内
+
+~~~c
+# include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#define MAX_BUFFER 256
+
+// 封装函数：将格式化输出写入到字符串
+/*
+ *  @brief package function and write down output format to string
+ *  @param  buffer is the container of format string
+ *  @param  format is the requirement value of vsprintf function
+ *  @param  ... is variables argument list
+ *  @return return actual format with va_list length
+ * */
+int format_message(char *buffer, const char *format, ...);
+
+int main(void) {
+
+  char output[MAX_BUFFER];
+  memset(output, 0, sizeof(output));
+
+  format_message(output, "%d is the real value of world!\n", 42);
+  fprintf(stdout, "%s", output);
+  return EXIT_SUCCESS;
+}
+int format_message(char *buffer, const char *format, ...) {
+  va_list args;
+  va_start(args, format);
+
+  // 使用 vsnprintf 代替 vsprintf，因为它接受缓冲区大小参数，更安全
+  // vsnprintf 是 vprintf 系列中用于写入字符串的最佳实践
+  int result = vsnprintf(buffer, MAX_BUFFER, format, args);
+
+  va_end(args);
+  return result;
+}
+~~~
+
+## 16.7 执行环境
+
+### 16.7.1 终止执行<stdlib.h>
+
+这三个函数与正常或不正常的程序终止有关。
+
+~~~c
+void abort(void);
+void atexit(void (*func)(void));
+void exit(int status);
+~~~
+
+`abort`函数用于不正常地终止一个正在执行的程序。由于这个函数将引发SIGABRT信号，可以在程序中为这个信号设置一个信号处理函数。
+
+`atexit`函数可以把一些函数注册为**退出函数(exit function)**。当程序将要正常终止时（或者由于调用exit，或者由于main函数返回），退出函数将被调用，退出函数不能接受任何参数。
+
+`exit`函数用于正常终止程序。
+
+当`exit`函数被调用时，所有被`atexit`函数注册为退出函数的函数将按照它们所注册的顺序被反序依次调用。然后所有用于流的缓冲区被刷新，所有打开的文件被关闭。用`tmpfile`函数创建的文件被删除。然后，退出状态返回给宿主环境，程序停止执行。
+
+> 不要在atexit注册的退出函数内再次调用exit函数，其效果未定义会导致一个无限循环，很可能只有当堆栈的内存耗尽后才会终止。
+
+### 16.7.2 断言<assert.h>
+
+断言就是声明某种东西应该为真。ANSI C实现了一个assert宏，在调试程序时很有用。
+
+~~~c
+void assert(int expression);
+~~~
+
+当它被执行时，这个宏对表达式参数进行测试。如果它的值为假（零），它就向标准错误打印一条诊断信息并终止程序。这条信息格式是由编译器定义的，为真则则不打印任何东西继续执行。
+
+这个宏提供了一种方便的方法，对应该是真的东西进行检。例如，如果一个函数必须用一个不为NULL的指针参数进行调用，那么函数可以用断言验证这个值：
+
+~~~c
+assert(value != NULL);
+~~~
+
+如果函数错误地接受了一个**NULL**参数，程序就会打印一条类型下面形式的信息：
+
+~~~c
+Assertion failed: value != NULL, file.c line 274
+~~~
+
+> 用这种方法使用断言使调试变得更容易，因为一旦出现错误，程序就会停止。而且，这条信息准确地提示了症状出现地点。
+
+> asser只适用于验证必须为真的表达式。
+
+可以在编译时通过定义**NDEBUG**消除所有的断言。使用编译器命令`-DNDEBUG`或在源文件头文件`<assert.h>`被包含前增加下面这个定义。
+
+~~~c
+#define NDEBUG
+~~~
+
+### 16.7.3 环境<stdlib.h>
+
+**环境(environment)**就是一个由编译器定义的名字/值对的列表，它由操作系统进行维护（就是系统的环境变量）。`getenv`函数在这个列表中查找一个特定的名字，如果找到，返回一个指向其对应值的指针。程序不能修改返回的字符串。如果名字未找到，函数就返回一个NULL指针。
+
+~~~c
+char *getenv(char const *name);
+~~~
+
+#### 使用两种不同的方法分配内存并输出映射的环境变量
+
+~~~c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX_ENV_LEN 128
+
+void safe_getenv_copy(const char *env_name);
+
+void process_env_dup(const char *env_name);
+
+int main(void) {
+  safe_getenv_copy("HOME");
+  process_env_dup("SHELL");
+  return 0;
+}
+
+void safe_getenv_copy(const char *env_name) {
+  char *env_value = getenv(
+      env_name); // 这里env_value
+                 // 指向的是在静态存储区中有操作系统维护的一个环境变量表的内存
+
+  if (env_value != NULL) {
+    // 1. 在栈上分配缓冲区
+    char local_buffer[MAX_ENV_LEN];
+
+    // 2. duplicate: use strncpy function to ensure local_buffer not to
+    // overflow. attention:strncpy may lose end symbol \0, so you need to make
+    // sure manually
+    strncpy(local_buffer, env_value, MAX_ENV_LEN - 1);
+    local_buffer[MAX_ENV_LEN - 1] = '\0'; // ensure empty terminate
+    printf("Safely copied %s: %s\n", env_name, local_buffer);
+    // 3. local_buffer will automatically released when leave function.
+
+  } else {
+    printf("%s not found", env_name);
+  }
+}
+
+void process_env_dup(const char *env_name) {
+  char *env_value = getenv(env_name);
+  char *heap_copy = NULL;
+
+  if (env_value != NULL) {
+    // 1. duplicate: use strdup (or strncpy + malloc) to duplicate to heap
+    // strdup can automatically allocate enough memory and copy string
+    heap_copy = strdup(env_value);
+
+    if (heap_copy != NULL) {
+      printf("Safely duplicated %s: %s\n", env_name, heap_copy);
+
+      free(heap_copy);
+    }
+  }
+}
+~~~
+
+### 16.7.4 执行系统命令<stdlib.h>
+
+`system`函数把它的字符串参数传递给宿主操作系统，这样它就可以作为一条命令，由系统的命令处理器执行。
+
+~~~c
+void system(char const *command);
+~~~
+
+这个任务执行的准确行为因编译器而异，返回值也是一样。
+
+~~~c
+int val = system(NULL);
+~~~
+
+一种用于查询命令处理器是否存在的调用，如果存在返回非零值，不存在则返回零。
+
+~~~c
+#include <stdio.h>
+#include <stdlib.h>
+
+int main(void) {
+
+  printf("1. Listing files using system():\n");
+  // 调用 ls 命令列出当前目录文件
+  system("ls -l --color=auto");
+
+  printf(
+      "\n2. Changing terminal background to BLUE using system() and 'tput'\n");
+
+  printf("Press Any key to continue...\n");
+  getchar();
+  // 使用 tput 命令
+  // setab 4 = Set Background Color to Blue (ANSI color 4)
+  system("tput setab 4");
+
+  // 清屏
+  system("clear");
+
+  printf("The background should now be BLUE.\n");
+  printf("This was done by invoking the 'tput' and 'clear' shell commands.\n");
+  printf("\n3. Resetting using ANSI escape codes (via echo):\n");
+  printf("(Press Enter to reset...)\n");
+  getchar();
+
+  // 使用 echo 发送 ANSI 转义字符 (SGR 0 重置属性)
+  // \033[0m 是重置所有属性的转移码
+  system("echo -e \"\\033[0m\"");
+  system("clear");
+
+  printf("Back to normal!\n");
+  return 0;
+}
+~~~
+
+### 16.7.5 排序和查找<stdlib.h>
+
+`qsort`函数在一个数组中以升序的方式对数据进行排序。由于它是和类型无关的，所以可以使用qsort排序任意类型的数据，只是数组中元素的长度是固定的。
+
+~~~c
+void qsort(void *base,size_t n_elements, size_t el_size,
+           int (*compare)(void const *,void const*));
+~~~
+
+第一个参数指向需要排序的数组，第二个参数指定数组中元素的数目，第三个参数指定每个元素的长度（以字符为单位），第四个参数是一个函数指针，用于对需要排序的元素进行比较。在排序时，`qsort`调用这个函数对数组中的数据进行比较。通过传递一个指向合适的比较函数的指针，可以用`qsort`排序任意类型值的数组。
+
+比较函数接受两个参数，它们是指向两个需要进行比较的值的指针。函数应该返回一个整数，大于零、等于零和小于零分别表示第一个参数大于、等于和小于第二个参数。
+
+#### 使用 qsort 对结构体数组按照结构体内成员进行排序
+
+~~~c
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+static int strlen_my(const char *str);
+
+static void remove_line(char *str);
+
+static int strcmp_my(const char *s1, const char *s2);
+
+#define INITMY_ARR(ARR, SIZE)                                                  \
+  do {                                                                         \
+    int __i;                                                                   \
+    for (__i = 0; __i < (SIZE); __i++) {                                       \
+      fprintf(stdout, "put No %d key string:\n", __i);                         \
+      fgets((ARR)[__i].key, sizeof((ARR)[__i].key), stdin);                    \
+      remove_line((ARR)[__i].key);                                             \
+      (ARR)[__i].other_data = rand() % 100 + 1;                                \
+    }                                                                          \
+  } while (0)
+
+#define PRINT_ARR(ARR, SIZE)                                                   \
+  do {                                                                         \
+    int __i;                                                                   \
+    for (__i = 0; __i < (SIZE); __i++) {                                       \
+      fprintf(stdout, "%s -> %d\n", (ARR)[__i].key, (ARR)[__i].other_data);    \
+    }                                                                          \
+  } while (0)
+
+typedef struct {
+  char key[10];   // 数组的排序关键字
+  int other_data; // 与关键字关联的数据
+} Record;
+
+// 比较函数，只比较关键的值。
+/*
+ *  @brief compare function：only compare key value
+ *  @param two void const* variable can execute force transfer for val
+ *  @return positive means val1 large than val2 zero means val1 equals to val2
+ * negative means val1 less than val2
+ * */
+static int r_compare(void const *a, void const *b);
+
+int main(void) {
+  time_t t;
+  srand((unsigned)time(&t));
+  const int length = 5;
+
+  Record array[length];
+  INITMY_ARR(array, length);
+
+  fputs("before qsort:\n", stdout);
+  PRINT_ARR(array, length);
+  qsort(array, length, sizeof(Record), r_compare);
+
+  fputs("after qsort:\n", stdout);
+  PRINT_ARR(array, length);
+
+  Record target;
+  Record *result;
+
+  // 查找
+  printf("\n请输入要查找的字符串：\n");
+  fgets(target.key, sizeof(target.key), stdin);
+  remove_line(target.key);
+
+  // 使用 bsearch 执行二分查找
+  result = (Record *)bsearch(&target, array, length, sizeof(Record), r_compare);
+
+  if (result != NULL) {
+    printf("找到！key: %s, other_data: %d\n", result->key, result->other_data);
+    printf("在数组中内存地址偏移量: %ld\n", result - array);
+  } else {
+    printf("未找到 key 为 %s 的元素\n", target.key);
+  }
+
+  return EXIT_SUCCESS;
+}
+
+static int strlen_my(const char *str) {
+  const char *p = str;
+  while (*p != '\0')
+    p++;
+  return p - str;
+}
+
+static int strcmp_my(const char *s1, const char *s2) {
+  while (*s1 != '\0' && *s1 == *s2) {
+    s1++;
+    s2++;
+  }
+
+  // 为什么强制转换为 unsigned char？
+  // C 语言标准规定 strcmp 比较时应将字符视为 unsigned char。
+  // 如果不转，对于扩展 ASCII 码（如大于 127 的字符），
+  // 可能会被当成负数，导致比较结果错误。
+
+  return *(unsigned char *)s1 - *(unsigned char *)s2;
+}
+
+static void remove_line(char *str) {
+  int size = strlen_my(str);
+  if (size != 0 && str[size - 1] == '\n') {
+    str[size - 1] = '\0';
+  }
+}
+
+static int r_compare(void const *a, void const *b) {
+  return strcmp_my(((const Record *)a)->key, ((const Record *)b)->key);
+}
+~~~
+
+## 16.8 locale
+
+为了使C语言在全世界的范围内更为通用，标准定义了locale，这是一组特定的参数，每个国家可能不同。在缺省的情况下是 **"C"locale**，编译器也可以定义其他的locale。修改locale可能影响库函数的运行方式。
+
+`setlocale`函数的原型如下所示，它用于修改整个或部分locale
+
+~~~c
+char *setlocale(int category, char const *locale);
+~~~
+
+`category`参数指定locale的哪个部分需要进行修改。所允许出现的值于下表
+
+<strong><center>setlocale 类型</center></strong>
+
+|值|修改|
+|:--:|:--:|
+|LC_ALL|整个locale|
+|LC_COLLATE|对照序列，它将影响strcoll和strxfrm函数的行为|
+|LC_CTYPE|定义于ctype.h中的函数所使用的字符类型分类信息|
+|LC_MONETARY|在格式化货币值时使用的字符|
+|LC_NUMERIC|在格式化非货币值时使用的字符。同时修改由格式化输入/输出函数和字符串转换函数所使用的小数点符号|
+|LC_TIME|strftime函数的行为|
+
+如果`setlocale`的第二个参数为NULL，函数将返回一个指向给定类型的当前的locale的名字的指针。这个值可能被保存并在后续的`setlocale`函数中使用，用来恢复以前的locale的值。
+
+> 这里`setlocale`函数返回的也是一个静态内存中的值，和ctime，strftime一样最好用一个字符数组接收当前返回的值，否则后续调用`setlocale`函数这个值可能会发生改变。
+
+> 使用`strdup`或`strncpy`复制到堆内存或栈内存上。
+
+~~~c
+#include <locale.h> // setlocale
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h> // strdup (POSIX)
+
+// 打印浮点数，观察小数点是 '.' 还是 ','
+inline static void print_number();
+
+int main(void) {
+  // 1. 显式设置初始环境为 "C" (标准 C 模式，小数点是点)
+  setlocale(LC_NUMERIC, "C");
+  printf("1. Initial state (C locale):\n");
+  print_number();
+
+  // 获取当前 locale 名称
+  char *current_ptr = setlocale(LC_NUMERIC, NULL);
+
+  // 必须拷贝字符串
+  char *saved_locale = strdup(current_ptr);
+
+  printf("\n[System] Saved old locale: '%s'\n", saved_locale);
+
+  // 切换到新环境
+  char *new_loc = setlocale(LC_NUMERIC, "de_DE.UTF-8");
+  if (new_loc == NULL) {
+    printf("\n(de_DE.UTF-8 not found, trying system default...)\n");
+    new_loc = setlocale(LC_NUMERIC, ""); // 尝试系统默认
+  }
+
+  printf("\n2. Temporary state (Changed to '%s'):\n", new_loc);
+  print_number();
+
+  // 恢复原来的环境
+  printf("\n[System] Restoring previous locale...\n");
+  setlocale(LC_NUMERIC, saved_locale);
+
+  printf("\n3. Restored state:\n");
+  print_number();
+
+  // 别忘了释放拷贝字符串的内存
+  free(saved_locale);
+
+  return 0;
+}
+
+inline static void print_number() { printf(" Current Output: %.2f\n", 3.14); }
+~~~
+
+### 16.8.1 数值和货币格式 <locale.h>
+
+`localeconv`函数用于获得根据当前的`locale`对非货币值和货币值进行合适的格式化所需要的信息。这个函数并不实际执行格式化任务，它只是提供一些如何进行格式化的信息。
+
+~~~c
+struct lconv *localeconv(void);
+~~~
+
+`lconv`结构包含两种类型的参数：字符和字符指针。
+
+### 16.8.2 字符串和 locale<string.h>
+
+一台机器的字符集的对照序列是固定的，但locale提供了一种方法指定不同的序列。当你必须使用一个并非缺省的对照序列时，可以使用下列两个函数。
+
+~~~c
+int strcoll(char const *s1, char const *s2);
+size_t strxfrm(char *s1, char const *s2, size_t size);
+~~~
+
+`strcoll`函数用法和`strcmp`类似，对两个字符串根据当前的locale的LC_COLLATE类型参数指定的字符串进行比较。它返回一个大于、等于或小于零的值。
+> 这个比较函数所需的计算量可能比`strcmp`需要多的多的计算量。因为它需要遵循一个并非是本地机器的对照序列。
+
+当字符串必须以这种方式反复进行比较时，可以使用`strxfrm`函数减少计算量。它根据当前的locale解释的第二个参数转换为另一个不依赖于locale的字符串。尽管转换后的字符串的内容是未确定的。
+
+~~~c
+#include <locale.h>
+#include <stdio.h>
+#include <string.h>
+
+int main() {
+  // set local environment （to let program know the language habit now）
+  setlocale(LC_ALL, "");
+
+  const char *s1 = "apple";
+  const char *s2 = "Banana";
+
+  printf("Comparing '%s' and '%s' :\n\n", s1, s2);
+
+  // 1. 使用 strcmp (only compare ASCII code)
+  // 'a' = 97, 'B' = 66, 97 > 66
+  int res_cmp = strcmp(s1, s2);
+  printf("[strcmp] Result: %d\n", res_cmp);
+  if (res_cmp > 0)
+    printf(" -> 'apple' come AFTER 'Banana' (ASCII order)\n");
+  else
+    printf(" -> 'apple' comes BEFORE 'Banana'\n");
+
+  printf("-------------------------\n");
+
+  // 2. 使用 strcoll （compare with dictionary order ）
+  // in the habit of eng, a comes before b unless the lower and upper
+  int res_coll = strcoll(s1, s2);
+  printf("[strcoll] Result: %d\n", res_coll);
+  if (res_coll > 0)
+    printf(" -> 'apple' comes AFTER 'Banana'\n");
+  else
+    printf(" -> 'apple' comes BEFORE 'Banana' (Dictionary order)\n");
+
+  // 3. strxfrm showcase
+  printf("\n--- strxfrm Demo ---\n");
+  char buf1[100], buf2[100];
+
+  // transform natural language into the compare 'key' used by strcmp
+  strxfrm(buf1, s1, sizeof(buf1));
+  strxfrm(buf2, s2, sizeof(buf2));
+
+  // the converted content might be a bunch of gibberish or a
+  // specific sequence
+  // the content after transform maybe a mess of damaged code
+  // or specific sequence we only care about the result of strcmp
+  int res_xfrm = strcmp(buf1, buf2);
+  printf("strcmp(xfrm(s1),xfrm(s2)) Result: %d\n", res_xfrm);
+
+  if (res_coll < 0 && res_xfrm < 0) {
+    printf("Verification: strxfrm result matches strcoll result!\n");
+  }
+  return 0;
+}
+~~~
+
+> `strcoll`在只需比较少次数的字符串比`strxtrm`快，`strxtrm` + `strcmp`用空间换时间的策略。
+
+~~~c
+详细对比：为什么会这样？
+
+  假设我们要排序 1000 个中文名字。
+
+  1. 只用 strcoll (慢)
+  排序算法（如 qsort）需要进行约 10,000 次比较 ($N \log N$)。
+   * 第 1 次比较：strcoll 查阅复杂的字典规则，算出 "张三" < "李四"。
+   * 第 2 次比较：strcoll 再次查阅规则，算出 "张三" > "安二"。
+   * ...
+   * 第 10,000 次比较：strcoll 第 N 次查阅规则...
+   * 结果：同一个字符串的规则被重复解析了无数次，浪费大量 CPU。
+
+  2. 用 strxfrm + strcmp (快)
+  这是“空间换时间”的策略。
+   * 预处理阶段：调用 1000 次 strxfrm。
+       * 把 "张三" 转换成二进制键值 \x05\x01... (假设值)。
+       * 把 "李四" 转换成二进制键值 \x08\x02...。
+       * 这步虽然有开销，但每个字符串只做一次。
+   * 排序阶段：进行 10,000 次 strcmp。
+       * strcmp 只需要比较 \x05 和 \x08，极其快（CPU 指令级别）。
+   * 结果：最耗时的“查规则”只做了 N 次，而不是 $N \log N$ 次。
+
+  总结公式
+
+   * 如果你只比较一次（比如 if (strcoll(a, b) > 0)）：
+       * 直接用 strcoll 更快。因为 strxfrm 需要分配内存、转换，这本身也是开销。
+   * 如果你要排序（比较次数远多于元素个数）：
+       * strxfrm + strcmp 是王道。
+~~~
+
+> `strxfrm`就是为了把昂贵的的逻辑判断“缓存”成廉价的二进制数据。
+
+### 16.8.3 改变locale的效果
+
+1. locale可能向正在执行的程序所使用的字符集增加字符（但可能不会改变现存字符的含义）。
+例如许多欧洲语言使用了能够提示重音、货币符号和其他特殊符号的扩展字符集。
+2. 打印的方向可能会改变。尤其是，locale决定一个字符应该根据前面一个被打印的字符的那个方向进行打印。
+3. printf和scanf函数家族使用当前locale定义的小数点符号。
+4. 如果locale扩展了正在使用的字符集，isalpha、islower、isspace和isupper函数可能比以前包括更多的字符。
+5. 正在使用的字符集的对照序列可能会改变。这个序列由strcoll函数使用，用于字符串之间的相互比较。
+
+6. strftime函数所产生的日期和时间格式的许多方面都是特定于locale的。
