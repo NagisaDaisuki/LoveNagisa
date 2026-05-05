@@ -5,7 +5,7 @@
   <link href="https://love.nagisadaisuki.icu/" rel="alternate" type="text/html"/>
   <link href="https://love.nagisadaisuki.icu/atom.xml" rel="self" type="application/atom+xml"/>
   <id>https://love.nagisadaisuki.icu/</id>
-  <updated>2025-12-24T06:43:31.840Z</updated>
+  <updated>2026-05-05T16:23:21.813Z</updated>
   <language>en</language>
   <entry>
     <title>Markdown Tutorial</title>
@@ -729,6 +729,206 @@ This is another regular paragraph.
       <name>Kirifuji Nagisa</name>
     </author>
     <category term="Examples"></category>
+  </entry>
+  <entry>
+    <title>yt-dlp常用下载命令</title>
+    <link href="https://love.nagisadaisuki.icu/posts/yt-dlp_use/" rel="alternate" type="text/html"/>
+    <id>https://love.nagisadaisuki.icu/posts/yt-dlp_use/</id>
+    <published>2026-05-05T00:00:00.000Z</published>
+    <updated>2026-05-05T00:00:00.000Z</updated>
+    <summary>记录yt-dlp的常用命令</summary>
+    <content type="html"><![CDATA[<h1>使用前的环境检查</h1>
+<h2>Archlinux</h2>
+<pre><code>sudo pacman -S yt-dlp ffmpeg deno
+</code></pre>
+<h2>Windows</h2>
+<pre><code>scoop install yt-dlp
+</code></pre>
+<p>或手动下载<code>yt-dlp.exe</code>，然后把它和<code>ffmpeg.exe/ffprobe.exe</code>所在目录加入PATH</p>
+<p><code>ffmpeg</code>很重要，因为很多网站的视频和音频是分开的，yt-dlp下载后要靠ffmpeg自动合并。</p>
+<h1>最常用的下载命令</h1>
+<h2>直接下载最高质量</h2>
+<p><code>yt-dlp "视频链接"</code></p>
+<blockquote>
+<p>默认下载最佳视频+最佳音频合并 <code>bestvideo*+bestaudio/best</code></p>
+</blockquote>
+<h2>查看可选清晰度 / 格式</h2>
+<p><code>yt-dlp -F "视频链接"</code></p>
+<h2>指定 1080p 以内</h2>
+<p><code>yt-dlp -f "bv*[height&lt;=1080]+ba/b[height&lt;=1080]" "视频链接"</code></p>
+<h2>指定 720p 以内</h2>
+<p><code>yt-dlp -f "bv*[height&lt;=720]+ba/b[height&lt;=720]" "视频链接"</code></p>
+<h2>只下载音频</h2>
+<p><code>yt-dlp -x --audio-format mp3 "视频链接"</code></p>
+<p>保存为 <code>m4a</code>:</p>
+<p><code>yt-dlp -x --audio-format m4a "视频链接"</code></p>
+<h2>指定输出文件名</h2>
+<p><code>yt-dlp -o "%(title)s.%(ext)s" "视频链接"</code></p>
+<p>更推荐这样，避免同名冲突：</p>
+<p><code>yt-dlp -o "%(uploader)s/%(upload_date)s-%(title)s-%(id)s.%(ext)s" "视频链接"</code></p>
+<h1>🐭 Bilibili 视频下载</h1>
+<blockquote>
+<p>✅ 支持大多数公开视频（包括番剧、电影等）</p>
+<p>🚫 暂不支持大会员付费内容</p>
+</blockquote>
+<h2>🎥 下载B站视频</h2>
+<pre><code>yt-dlp "https://www.bilibili.com/video/BVxxxxxxx"
+</code></pre>
+<h3>🎞️ 下载分P视频</h3>
+<blockquote>
+<p>B站的 BV 视频如果有分 P，yt-dlp 很多时候会把它当成 playlist 处理。官方选项里 --yes-playlist 表示下载列表，--no-playlist 表示只下当前视频；-I/--playlist-items 可以指定列表中的第几个或范围。</p>
+</blockquote>
+<h4>只下第1P和第3P</h4>
+<pre><code>yt-dlp --playlist-items 1 "https://www.bilibili.com/video/BV1xxxxxxx"
+yt-dlp -I 3 "https://www.bilibili.com/video/BVxxxx"
+</code></pre>
+<h4>下载整个分P / 合集</h4>
+<pre><code>yt-dlp --yes-playlist "https://www.bilibili.com/video/BVxxxx"
+</code></pre>
+<h3>只下载当前这个视频，不展开列表</h3>
+<pre><code>yt-dlp --no-playlist "https://www.bilibili.com/video/BVxxxx"
+</code></pre>
+<h3>下载第 1 到第 5 个</h3>
+<pre><code>yt-dlp -I 1:5 "https://www.bilibili.com/video/BVxxxx"
+</code></pre>
+<h3>隔一个下一个，比如 1、3、5、7</h3>
+<p>yt-dlp -I 1::2 "<a href="https://www.bilibili.com/video/BVxxxx">https://www.bilibili.com/video/BVxxxx</a>"</p>
+<h3>保存到合集文件夹，并按序号命名</h3>
+<pre><code>yt-dlp --yes-playlist \
+  -o "%(playlist_title)s/%(playlist_index)03d - %(title)s.%(ext)s" \
+  "https://www.bilibili.com/video/BVxxxx"
+</code></pre>
+<h1>📺 YouTube 视频下载</h1>
+<h2>普通下载</h2>
+<pre><code>yt-dlp "https://www.youtube.com/watch?v=xxxx"
+</code></pre>
+<h2>下载播放列表</h2>
+<pre><code>yt-dlp "https://www.youtube.com/playlist?list=xxxx"
+</code></pre>
+<h2>只下载播放列表前 10 个</h2>
+<pre><code>yt-dlp -I 1:10 "播放列表链接"
+</code></pre>
+<h1>🐦 Twitter 视频下载</h1>
+<blockquote>
+<p>✅ 支持公开视频和GIF（私密/限制访问的可能无法下载）</p>
+</blockquote>
+<h2>🎥 下载推文中的视频</h2>
+<pre><code>yt-dlp "https://twitter.com/用户名/status/1234567890123456789"
+yt-dlp "https://x.com/用户名/status/数字"
+</code></pre>
+<h2>如果提示需要登录、403、无法解析，就加 cookies</h2>
+<pre><code>yt-dlp -f best "https://twitter.com/用户名/status/1234567890123456789"
+</code></pre>
+<h2>保存文件名推荐</h2>
+<pre><code>yt-dlp \
+  --cookies-from-browser firefox \
+  -o "Twitter/%(uploader)s-%(id)s-%(title).80s.%(ext)s" \
+  "推文链接"
+</code></pre>
+<h1>使用<code>-F(--list-formats)</code>和<code>-f(--format)</code>选项列出视频所有可下载格式(搭配cookies下载网站最高画质视频和音频)</h1>
+<h2>1. <strong>查看可用格式</strong></h2>
+<pre><code>yt-dlp -F --cookies /path/to/your/cookies "https://www.bilibili.com/video/BVxxxxxx"
+</code></pre>
+<p>执行这个命令后会看到一个列表，记住<code>ID</code>和对应的视频的<code>RESOLUTION</code></p>
+<h2>1. <strong>指定格式并下载</strong>:（该加cookies的加cookies）</h2>
+<h3>- <strong>只下载视频</strong></h3>
+<pre><code>yt-dlp -f &lt;视频ID&gt; "https://www.bilibili.com/video/BVxxxxxx"
+# 假如1080p视频id为600
+yt-dlp -f 600 "https://www.bilibili.com/video/BVxxxxxx"
+</code></pre>
+<h3>- <strong>只下载音频</strong></h3>
+<pre><code>yt-dlp -f &lt;音频ID&gt; "https://www.bilibili.com/video/BVxxxxxx"
+# 假如最高音质的音频id为125
+yt-dlp -f 125 "https://www.bilibili.com/video/BVxxxxxx"
+</code></pre>
+<h3>- <strong>同时下载视频和音频</strong></h3>
+<pre><code>yt-dlp -f 600+125 "https://www.bilibili.com/video/BVxxxxxx"
+</code></pre>
+<h3>- <strong>下载最佳视频和最佳音频</strong></h3>
+<pre><code>yt-dlp -f bestvideo+bestaudio "https://www.bilibili.com/video/BVxxxxxx"
+yt-dlp -f bv+ba "https://www.bilibili.com/video/BVxxxxxx"
+</code></pre>
+<h1>使用 -o 避免重名覆盖 和 下载列表 / 合集时按顺序保存</h1>
+<h2>1. 防止重名覆盖 / 混乱</h2>
+<p>有些视频标题一样，或者标题里有奇怪字符，加上 id 更稳：</p>
+<p><code>yt-dlp -o "%(title)s-%(id)s.%(ext)s" "URL"</code></p>
+<p>输出类似：</p>
+<p><code>我的视频标题-dQw4w9WgXcQ.mp4</code></p>
+<h2>2. 下载列表 / 合集时按顺序保存</h2>
+<pre><code>yt-dlp --yes-playlist \
+  -o "%(playlist_title)s/%(playlist_index)03d - %(title)s.%(ext)s" \
+  "合集链接"
+</code></pre>
+<p>输出会变成：</p>
+<pre><code>某个合集/
+├── 001 - 第一集.mp4
+├── 002 - 第二集.mp4
+├── 003 - 第三集.mp4
+</code></pre>
+<blockquote>
+<p>如果不用 playlist_index，文件管理器里可能按标题排序，顺序乱掉。</p>
+</blockquote>
+<h2>3. 自动分类到不同文件夹</h2>
+<p>比如按 UP 主 / 频道分类：</p>
+<pre><code>yt-dlp -o "%(uploader)s/%(title)s.%(ext)s" "URL"
+</code></pre>
+<p>输出：</p>
+<pre><code>某个UP主/
+└── 视频标题.mp4
+</code></pre>
+<p>或者按日期分类：</p>
+<pre><code>yt-dlp -o "%(uploader)s/%(upload_date)s-%(title)s.%(ext)s" "URL"
+</code></pre>
+<p>输出：</p>
+<pre><code>某个UP主/
+└── 20260505-视频标题.mp4
+</code></pre>
+<h2>常见字段含义</h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>%(title)s</td>
+<td>视频标题</td>
+</tr>
+<tr>
+<td>%(id)s</td>
+<td>视频 ID</td>
+</tr>
+<tr>
+<td>%(ext)s</td>
+<td>文件扩展名</td>
+</tr>
+<tr>
+<td>%(uploader)s</td>
+<td>UP 主 / 频道名</td>
+</tr>
+<tr>
+<td>%(upload_date)s</td>
+<td>上传日期，格式通常是 20260505</td>
+</tr>
+<tr>
+<td>%(playlist_title)s</td>
+<td>播放列表 / 合集标题</td>
+</tr>
+<tr>
+<td>%(playlist_index)s</td>
+<td>播放列表序号</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>%(ext)s 一般必须保留，因为最终扩展名可能是 mp4、webm、mkv、m4a 等。</p>
+</blockquote>
+]]></content>
+    <author>
+      <name>Kirifuji Nagisa</name>
+    </author>
   </entry>
   <entry>
     <title>C与指针笔记</title>
@@ -7554,12 +7754,9 @@ sudo tar -xzvpf /path/to/your/etc_backup.tar.gz -C /mnt/rootfs/
 <td><code>-G 组1,组2</code></td>
 <td>加入附加组</td>
 </tr>
-<tr>
-<td>示例：</td>
-<td></td>
-</tr>
 </tbody>
 </table>
+<p>示例：</p>
 <pre><code>sudo useradd -m -s /bin/bash -g users -G wheel,developers alice
 </code></pre>
 <p>然后设置密码：</p>
@@ -7610,14 +7807,11 @@ sudo tar -xzvpf /path/to/your/etc_backup.tar.gz -C /mnt/rootfs/
 <td><code>-R</code></td>
 <td>递归更改目录下所有文件</td>
 </tr>
-<tr>
-<td>示例：</td>
-<td></td>
-</tr>
 </tbody>
 </table>
+<p>示例：</p>
 <pre><code>sudo chown alice file.txt # 改文件属主为 alice
-sudo chown alice:developers file.txt # 改文件属主为 alice 属组为 developers 
+sudo chown alice:developers file.txt # 改文件属主为 alice 属组为 developers
 sudo chown -R bob: /var/www/ # 递归更改整个目录
 </code></pre>
 <h3>👪 四、chgrp：只更改属组（change group）</h3>
@@ -7651,12 +7845,9 @@ sudo chgrp -R staff /opt/shared # 递归更改整个目录
 <td><code>x</code></td>
 <td>执行权限（1）</td>
 </tr>
-<tr>
-<td>模式表示法：</td>
-<td></td>
-</tr>
 </tbody>
 </table>
+<p>模式表示法：</p>
 <ol>
 <li>数字表示法（常用）：</li>
 </ol>
@@ -7755,16 +7946,10 @@ chmod o=r file     # 设置其他用户为只读
 <td><code>-L</code> / <code>-U</code></td>
 <td>锁定/解锁账号（禁止/恢复登录）</td>
 </tr>
-<tr>
-<td>🧪 示例：</td>
-<td></td>
-</tr>
-<tr>
-<td>➤ 添加用户 alice 到 <code>sudo</code> 组：</td>
-<td></td>
-</tr>
 </tbody>
 </table>
+<p>🧪 示例：
+➤ 添加用户 alice 到 <code>sudo</code> 组：</p>
 <pre><code>sudo usermod -aG sudo alice
 </code></pre>
 <p>➤ 修改用户 shell 为 bash：</p>
@@ -7789,16 +7974,10 @@ chmod o=r file     # 设置其他用户为只读
 <td><code>-r</code></td>
 <td>同时删除用户主目录、邮箱等文件</td>
 </tr>
-<tr>
-<td>🧪 示例：</td>
-<td></td>
-</tr>
-<tr>
-<td>➤ 删除用户但保留主目录：</td>
-<td></td>
-</tr>
 </tbody>
 </table>
+<p>🧪 示例：
+➤ 删除用户但保留主目录：</p>
 <pre><code>sudo userdel alice
 </code></pre>
 <p>➤ 删除用户并清理其主目录：</p>
@@ -7871,7 +8050,7 @@ chmod o=r file     # 设置其他用户为只读
 </tr>
 </tbody>
 </table>
-<h3>🧪 示例：设置目录权限给指定用户和组：</h3>
+<h3>🧪 示例：设置目录权限给指定用户和组</h3>
 <pre><code>sudo useradd -m alice # -G devs
 sudo groupadd devs # -U alice
 sudo usermod -aG devs alice
@@ -7926,7 +8105,7 @@ sudo chmod 770 /data/project
 <p>&lt;ins&gt; Create the DIRECTORY(ies), if they do not already exist.&lt;/ins&gt;</p>
 <pre><code>mkdir [options] dirName
 </code></pre>
-<p><strong><strong>Common options(常见选项)：</strong></strong></p>
+<p>*<strong>*Common options(常见选项)：**</strong></p>
 <table>
 <thead>
 <tr>
@@ -8006,7 +8185,7 @@ sudo chmod 770 /data/project
 <li><code>-i</code>：覆盖前询问</li>
 <li><code>-u</code>：仅复制较新文件</li>
 </ul>
-<p><strong><strong>其他选项：</strong></strong>
+<p>*<strong>*其他选项：**</strong>
 <code>-a</code>:将原有属性复制和链接文件原带复制，
 <code>-p</code>:将文件属性一起复制，不复制链接文件(和<code>-a</code>的区别)，<code>-l</code>:硬链接文件建立，<code>-s</code>:软链接文件建立</p>
 <p>例：</p>
@@ -8076,7 +8255,7 @@ touch -t 202506051111 bashrc
 </ul>
 <p>例：</p>
 <pre><code>cat file.txt
-cat -n file.txt 
+cat -n file.txt
 cat -b /etc/passwd
 cat -A /etc/pacman.conf
 </code></pre>
@@ -8104,14 +8283,15 @@ cat -A /etc/pacman.conf
 <p><strong>🔸tail：显示末尾几行</strong></p>
 <ul>
 <li><code>-n</code>：显示末尾前几行</li>
-<li><code>-f</code>：跟踪文件变化</li>
-</ul>
+<li><code>-f</code>：跟踪文件变化
 <blockquote>
 <p><code>-f</code>用于</p>
 <blockquote>
 <p>&lt;p style="color:pink"&gt;&lt;ins&gt;日志随时写入情况&lt;/ins&gt;&lt;/p&gt;</p>
 </blockquote>
 </blockquote>
+</li>
+</ul>
 <pre><code>tail -n 20 /etc/passwd
 tail -f /var/log/syslog
 </code></pre>
@@ -8137,12 +8317,12 @@ tail -f /var/log/syslog
 <pre><code>od [-t type] 文件
 </code></pre>
 <p><code>-t</code>后面可以接各种类型的输出，例如：</p>
-<p>a   ：利用默认字符来输出 &lt;br&gt;
-c   ：使用ASCII字符来输出&lt;br&gt;
-d [size]  ：使用十进制(decimal)来输出数据，每个整数占用size Bytes；&lt;br&gt;
-f [size]  ：使用浮点数输出，其他同上&lt;br&gt;
-o [size]  ：八进制&lt;br&gt;
-x [size]  ：十六进制&lt;br&gt;</p>
+<p>a ：利用默认字符来输出 &lt;br&gt;
+c ：使用ASCII字符来输出&lt;br&gt;
+d [size] ：使用十进制(decimal)来输出数据，每个整数占用size Bytes；&lt;br&gt;
+f [size] ：使用浮点数输出，其他同上&lt;br&gt;
+o [size] ：八进制&lt;br&gt;
+x [size] ：十六进制&lt;br&gt;</p>
 <ul>
 <li>范例一：将<code>/usr/bin/passwd</code>的内容使用ASCII方式来显示。</li>
 </ul>
@@ -8257,7 +8437,7 @@ locate passwd
 <p>常用例：</p>
 <pre><code>find /usr/bin /usr/sbin -perm /6000 # 无SBIT权限
 
-inshell: $(find "$WALLPAPER_DIR" -type f \( -iname "*.jpg" -o -iname "*.png" -o -iname "*.jpeg" -o \) | shuf -n 1) 
+inshell: $(find "$WALLPAPER_DIR" -type f \( -iname "*.jpg" -o -iname "*.png" -o -iname "*.jpeg" -o \) | shuf -n 1)
 # 随机抽取指定目录下的一张指定格式的图片
 
 find . -type f \( -name "*.txt" -o -name "*.md" \) ! -name "README.md"
@@ -8274,7 +8454,7 @@ find . -type f -exec chmod 644 {} \; # 批量修改权限
 find . -name "*.txt" -exec wc -l {} + # +可以批量处理 统计所有txt行数
 
 find . -name "*.log" | xargs rm
-# 搭配xargs 
+# 搭配xargs
 
 find . -type f -empty # 空文件
 find . -type d -empty # 空目录
@@ -8344,7 +8524,7 @@ find . -mindepth 2 # 忽略前几层目录
 </tr>
 <tr>
 <td>按类型</td>
-<td><code>-type f</code> / <code>-type d</code></td>
+<td><code>-type f</code> / <code>-type d</code> / <code>-type l</code></td>
 </tr>
 <tr>
 <td>按时间</td>
@@ -8352,15 +8532,15 @@ find . -mindepth 2 # 忽略前几层目录
 </tr>
 <tr>
 <td>按大小</td>
-<td><code>-size +100M</code></td>
+<td><code>-size +100M</code> / <code>-size -1k</code> / <code>-size 100c</code></td>
 </tr>
 <tr>
 <td>空文件</td>
 <td><code>-empty</code></td>
 </tr>
 <tr>
-<td>权限查</td>
-<td><code>-perm 755</code></td>
+<td>权限/可执行文件</td>
+<td><code>-perm 755</code> / <code>-executable</code> / <code>-perm -111</code></td>
 </tr>
 <tr>
 <td>排除条件</td>
@@ -8376,11 +8556,15 @@ find . -mindepth 2 # 忽略前几层目录
 </tr>
 <tr>
 <td>限制深度</td>
-<td><code>-maxdepth</code>、<code>-mindepth</code></td>
+<td><code>-maxdepth 1</code>、<code>-mindepth 2</code></td>
 </tr>
 <tr>
 <td>跳过目录</td>
 <td><code>-prune</code></td>
+</tr>
+<tr>
+<td>组合条件</td>
+<td><code>-a</code> / <code>-o</code> / <code>!</code></td>
 </tr>
 </tbody>
 </table>
@@ -8403,13 +8587,19 @@ GPT: GUID Partition Table</p>
 <h3>一、磁盘分区 (Partitioning)</h3>
 <h4>1. 查看磁盘信息</h4>
 <ul>
-<li><strong><code>lsblk</code></strong>: 列出所有块设备及其分区信息，包括设备名称、大小、挂载点、文件系统类型等。这是最常用且直观的命令。<pre><code>lsblk
+<li>
+<p><strong><code>lsblk</code></strong>: 列出所有块设备及其分区信息，包括设备名称、大小、挂载点、文件系统类型等。这是最常用且直观的命令。</p>
+<pre><code>lsblk
 </code></pre>
 </li>
-<li><strong><code>fdisk -l</code></strong>: 列出所有磁盘的分区表信息。<pre><code>sudo fdisk -l
+<li>
+<p><strong><code>fdisk -l</code></strong>: 列出所有磁盘的分区表信息。</p>
+<pre><code>sudo fdisk -l
 </code></pre>
 </li>
-<li><strong><code>parted -l</code></strong>: 另一个查看分区表的工具，对于 GPT 分区表支持更好。<pre><code>sudo parted -l
+<li>
+<p><strong><code>parted -l</code></strong>: 另一个查看分区表的工具，对于 GPT 分区表支持更好。</p>
+<pre><code>sudo parted -l
 </code></pre>
 </li>
 </ul>
@@ -8450,21 +8640,32 @@ GPT: GUID Partition Table</p>
 <ul>
 <li><strong><code>mkfs</code> 系列命令：</strong> <code>mkfs</code> 是一个通用命令，后面可以跟不同的文件系统类型。
 <ul>
-<li><strong>Ext4 (Linux 常用):</strong><pre><code>sudo mkfs.ext4 /dev/sdXY  # 替换 /dev/sdXY 为你的分区名，例如 /dev/sdb1
+<li>
+<p><strong>Ext4 (Linux 常用):</strong></p>
+<pre><code>sudo mkfs.ext4 /dev/sdXY  # 替换 /dev/sdXY 为你的分区名，例如 /dev/sdb1
 </code></pre>
-或者<pre><code>sudo mkfs -t ext4 /dev/sdXY
-</code></pre>
-</li>
-<li><strong>XFS:</strong><pre><code>sudo mkfs.xfs /dev/sdXY
-</code></pre>
-</li>
-<li><strong>FAT32 (兼容 Windows):</strong><pre><code>sudo mkfs.vfat /dev/sdXY  # 或者 mkfs.fat -F 32 /dev/sdXY
+<p>或者</p>
+<pre><code>sudo mkfs -t ext4 /dev/sdXY
 </code></pre>
 </li>
-<li><strong>NTFS (兼容 Windows):</strong><pre><code>sudo mkfs.ntfs /dev/sdXY
+<li>
+<p><strong>XFS:</strong></p>
+<pre><code>sudo mkfs.xfs /dev/sdXY
 </code></pre>
 </li>
-<li><strong>Btrfs:</strong><pre><code>sudo mkfs.btrfs /dev/sdXY
+<li>
+<p><strong>FAT32 (兼容 Windows):</strong></p>
+<pre><code>sudo mkfs.vfat /dev/sdXY  # 或者 mkfs.fat -F 32 /dev/sdXY
+</code></pre>
+</li>
+<li>
+<p><strong>NTFS (兼容 Windows):</strong></p>
+<pre><code>sudo mkfs.ntfs /dev/sdXY
+</code></pre>
+</li>
+<li>
+<p><strong>Btrfs:</strong></p>
+<pre><code>sudo mkfs.btrfs /dev/sdXY
 </code></pre>
 </li>
 </ul>
@@ -8481,33 +8682,49 @@ GPT: GUID Partition Table</p>
 </ul>
 <h4>LVM 常用命令</h4>
 <ul>
-<li><strong>创建 PV:</strong><pre><code>sudo pvcreate /dev/sdXY  # 将分区标记为物理卷
+<li>
+<p><strong>创建 PV:</strong></p>
+<pre><code>sudo pvcreate /dev/sdXY  # 将分区标记为物理卷
 </code></pre>
 </li>
-<li><strong>查看 PV:</strong><pre><code>sudo pvs
+<li>
+<p><strong>查看 PV:</strong></p>
+<pre><code>sudo pvs
 sudo pvdisplay
 </code></pre>
 </li>
-<li><strong>创建 VG:</strong><pre><code>sudo vgcreate my_vg /dev/sdb1 /dev/sdc1  # 创建名为 my_vg 的卷组，包含 sdb1 和 sdc1
+<li>
+<p><strong>创建 VG:</strong></p>
+<pre><code>sudo vgcreate my_vg /dev/sdb1 /dev/sdc1  # 创建名为 my_vg 的卷组，包含 sdb1 和 sdc1
 </code></pre>
 </li>
-<li><strong>查看 VG:</strong><pre><code>sudo vgs
+<li>
+<p><strong>查看 VG:</strong></p>
+<pre><code>sudo vgs
 sudo vgdisplay
 </code></pre>
 </li>
-<li><strong>从 VG 中扩展/移除 PV:</strong><pre><code>sudo vgextend my_vg /dev/sdd1  # 将 sdd1 添加到 my_vg
+<li>
+<p><strong>从 VG 中扩展/移除 PV:</strong></p>
+<pre><code>sudo vgextend my_vg /dev/sdd1  # 将 sdd1 添加到 my_vg
 sudo vgreduce my_vg /dev/sdd1  # 从 my_vg 移除 sdd1 (需确保上面没有 LV)
 </code></pre>
 </li>
-<li><strong>创建 LV:</strong><pre><code>sudo lvcreate -L 10G -n my_lv my_vg  # 在 my_vg 中创建名为 my_lv 的 10GB 逻辑卷
+<li>
+<p><strong>创建 LV:</strong></p>
+<pre><code>sudo lvcreate -L 10G -n my_lv my_vg  # 在 my_vg 中创建名为 my_lv 的 10GB 逻辑卷
 sudo lvcreate -l 100%FREE -n my_lv my_vg # 使用 VG 中所有可用空间创建 LV
 </code></pre>
 </li>
-<li><strong>查看 LV:</strong><pre><code>sudo lvs
+<li>
+<p><strong>查看 LV:</strong></p>
+<pre><code>sudo lvs
 sudo lvdisplay
 </code></pre>
 </li>
-<li><strong>调整 LV 大小 (扩展/收缩):</strong><pre><code>sudo lvextend -L +5G /dev/my_vg/my_lv  # 将 my_lv 扩展 5GB
+<li>
+<p><strong>调整 LV 大小 (扩展/收缩):</strong></p>
+<pre><code>sudo lvextend -L +5G /dev/my_vg/my_lv  # 将 my_lv 扩展 5GB
 sudo lvreduce -L -2G /dev/my_vg/my_lv  # 将 my_lv 缩小 2GB (有数据丢失风险，需先卸载和检查文件系统)
 </code></pre>
 <ul>
@@ -8519,43 +8736,60 @@ sudo lvreduce -L -2G /dev/my_vg/my_lv  # 将 my_lv 缩小 2GB (有数据丢失�
 </li>
 </ul>
 </li>
-<li><strong>删除 LV:</strong><pre><code>sudo lvremove /dev/my_vg/my_lv  # 删除逻辑卷
+<li>
+<p><strong>删除 LV:</strong></p>
+<pre><code>sudo lvremove /dev/my_vg/my_lv  # 删除逻辑卷
 </code></pre>
 </li>
-<li><strong>删除 VG:</strong><pre><code>sudo vgremove my_vg  # 删除卷组 (需确保卷组中没有 LV)
+<li>
+<p><strong>删除 VG:</strong></p>
+<pre><code>sudo vgremove my_vg  # 删除卷组 (需确保卷组中没有 LV)
 </code></pre>
 </li>
-<li><strong>删除 PV:</strong><pre><code>sudo pvremove /dev/sdXY  # 删除物理卷 (需确保物理卷没有被任何 VG 使用)
-</code></pre>
-</li>
-</ul>
+<li>
+<p><strong>删除 PV:</strong>
+<code>bash sudo pvremove /dev/sdXY  # 删除物理卷 (需确保物理卷没有被任何 VG 使用) </code></p>
 <blockquote>
 <p>Btrfs分卷查看Archlinux系统安装--&gt;<a href="https://arch.icekylin.online/guide/rookie/basic-install-detail.html">Why Btrfs</a></p>
 </blockquote>
+</li>
+</ul>
 <hr />
 <h3>四、分区挂载 (Mounting)</h3>
 <p>将格式化后的分区或逻辑卷连接到文件系统树中的一个目录，使其可以被访问。</p>
 <h4>1. 创建挂载点</h4>
 <ul>
-<li>挂载点是一个普通的空目录。<pre><code>sudo mkdir /mnt/mydata  # 创建一个名为 mydata 的挂载点
+<li>
+<p>挂载点是一个普通的空目录。</p>
+<pre><code>sudo mkdir /mnt/mydata  # 创建一个名为 mydata 的挂载点
 </code></pre>
 </li>
 </ul>
 <h4>2. 临时挂载</h4>
 <ul>
-<li><strong>基本挂载：</strong><pre><code>sudo mount /dev/sdXY /mnt/mydata  # 挂载分区 /dev/sdXY 到 /mnt/mydata
+<li>
+<p><strong>基本挂载：</strong></p>
+<pre><code>sudo mount /dev/sdXY /mnt/mydata  # 挂载分区 /dev/sdXY 到 /mnt/mydata
 </code></pre>
 </li>
-<li><strong>指定文件系统类型：</strong> (通常不需要，<code>mount</code> 命令可以自动识别)<pre><code>sudo mount -t ext4 /dev/sdXY /mnt/mydata
+<li>
+<p><strong>指定文件系统类型：</strong> (通常不需要，<code>mount</code> 命令可以自动识别)</p>
+<pre><code>sudo mount -t ext4 /dev/sdXY /mnt/mydata
 </code></pre>
 </li>
-<li><strong>只读挂载：</strong><pre><code>sudo mount -o ro /dev/sdXY /mnt/mydata
+<li>
+<p><strong>只读挂载：</strong></p>
+<pre><code>sudo mount -o ro /dev/sdXY /mnt/mydata
 </code></pre>
 </li>
-<li><strong>重新挂载 (改变挂载选项)：</strong><pre><code>sudo mount -o remount,rw /mnt/mydata  # 将已挂载的 /mnt/mydata 重新挂载为读写模式
+<li>
+<p><strong>重新挂载 (改变挂载选项)：</strong></p>
+<pre><code>sudo mount -o remount,rw /mnt/mydata  # 将已挂载的 /mnt/mydata 重新挂载为读写模式
 </code></pre>
 </li>
-<li><strong>查看已挂载的文件系统：</strong><pre><code>mount          # 列出所有已挂载的文件系统
+<li>
+<p><strong>查看已挂载的文件系统：</strong></p>
+<pre><code>mount          # 列出所有已挂载的文件系统
 df -h          # 以人类可读的方式显示磁盘空间使用情况，包括挂载点
 lsblk -f       # 显示块设备的文件系统信息和挂载点
 </code></pre>
@@ -8563,27 +8797,40 @@ lsblk -f       # 显示块设备的文件系统信息和挂载点
 </ul>
 <h4>3. 卸载分区</h4>
 <ul>
-<li>在卸载之前，确保没有程序正在使用该挂载点下的文件。<pre><code>sudo umount /mnt/mydata  # 卸载 /mnt/mydata 目录
+<li>
+<p>在卸载之前，确保没有程序正在使用该挂载点下的文件。</p>
+<pre><code>sudo umount /mnt/mydata  # 卸载 /mnt/mydata 目录
 sudo umount /dev/sdXY    # 卸载 /dev/sdXY 分区
 </code></pre>
 </li>
-<li>如果无法卸载（“device is busy”），可以使用 <code>lsof</code> 或 <code>fuser</code> 命令查找占用进程：<pre><code>sudo lsof /mnt/mydata
+<li>
+<p>如果无法卸载（“device is busy”），可以使用 <code>lsof</code> 或 <code>fuser</code> 命令查找占用进程：</p>
+<pre><code>sudo lsof /mnt/mydata
 sudo fuser -km /mnt/mydata  # 强制杀死占用进程并卸载
 </code></pre>
 </li>
 </ul>
 <h4>4. 永久挂载 (<code>/etc/fstab</code>)</h4>
 <ul>
-<li>为了在系统启动时自动挂载分区，需要编辑 <code>/etc/fstab</code> 文件。</li>
-<li><strong>推荐使用 UUID (Universally Unique Identifier) 来标识分区，因为设备名（如 <code>/dev/sdb1</code>）可能会在重启后改变。</strong>
+<li>
+<p>为了在系统启动时自动挂载分区，需要编辑 <code>/etc/fstab</code> 文件。</p>
+</li>
+<li>
+<p><strong>推荐使用 UUID (Universally Unique Identifier) 来标识分区，因为设备名（如 <code>/dev/sdb1</code>）可能会在重启后改变。</strong></p>
 <ul>
-<li>查找分区的 UUID：<pre><code>sudo blkid /dev/sdXY
+<li>
+<p>查找分区的 UUID：</p>
+<pre><code>sudo blkid /dev/sdXY
 </code></pre>
 </li>
-<li>编辑 <code>/etc/fstab</code> 文件：<pre><code>sudo nano /etc/fstab  # 或者使用 vi、vim 等编辑器
+<li>
+<p>编辑 <code>/etc/fstab</code> 文件：</p>
+<pre><code>sudo nano /etc/fstab  # 或者使用 vi、vim 等编辑器
 </code></pre>
 </li>
-<li>在文件末尾添加一行，格式如下：<pre><code>UUID=&lt;你的UUID&gt;  /mnt/mydata  ext4  defaults  0  2
+<li>
+<p>在文件末尾添加一行，格式如下：</p>
+<pre><code>UUID=&lt;你的UUID&gt;  /mnt/mydata  ext4  defaults  0  2
 </code></pre>
 <ul>
 <li><strong><code>&lt;你的UUID&gt;</code>:</strong> 替换为你的分区的实际 UUID。</li>
@@ -8596,9 +8843,12 @@ sudo fuser -km /mnt/mydata  # 强制杀死占用进程并卸载
 </li>
 </ul>
 </li>
-<li><strong>测试 <code>/etc/fstab</code> 配置：</strong><pre><code>sudo mount -a  # 尝试挂载所有在 /etc/fstab 中列出的但尚未挂载的文件系统
+<li>
+<p><strong>测试 <code>/etc/fstab</code> 配置：</strong></p>
+<pre><code>sudo mount -a  # 尝试挂载所有在 /etc/fstab 中列出的但尚未挂载的文件系统
 </code></pre>
-如果没有任何错误输出，说明配置正确。如果有错误，请检查 <code>/etc/fstab</code> 文件。</li>
+<p>如果没有任何错误输出，说明配置正确。如果有错误，请检查 <code>/etc/fstab</code> 文件。</p>
+</li>
 </ul>
 <hr />
 <h2>文件与文件系统的压缩</h2>
@@ -8697,7 +8947,7 @@ gzip -9 -c myfile.txt &gt; myfile.txt.gz # 最佳压缩比压缩并保留原本�
 <p><code>bzip2</code>提供比<code>gzip</code>更高的<strong>压缩比</strong>，但压缩和解压缩速度相对较慢，且占用更多内存。</p>
 <ul>
 <li><strong>功能：</strong> 压缩或解压缩文件。默认会生成 .bz2 后缀的压缩文件并删除原文件。</li>
-<li><strong>特点：</strong>  压缩比高，速度慢，资源占用相对较高。</li>
+<li><strong>特点：</strong> 压缩比高，速度慢，资源占用相对较高。</li>
 </ul>
 <p><strong>常用选项：</strong></p>
 <ul>
@@ -8736,7 +8986,7 @@ bzip2 -c -9 mydocument.txt &gt; mydocument.txt.bz2 # 最佳压缩比压缩并保
 xz -k mydata.log      # 压缩文件并保留原文件
 xz -d mydata.log.xz   # 解压缩文件
 xzcat mydata.log.xz   # 查看压缩文件内容 (不解压)
-xz -l mydata.log.xz   # 列出压缩文件信息 
+xz -l mydata.log.xz   # 列出压缩文件信息
 </code></pre>
 <h3>4. <code>tar</code>命令</h3>
 <p><code>tar</code>（Tape Archive）是一个归档（打包）工具，本身不进行压缩。它将多个文件和目录组合成一个单一的归档文件（“tarball”），常与 <code>gzip</code>、<code>bzip2</code>、<code>xz</code> 结合使用。</p>
@@ -8794,7 +9044,7 @@ time tar -cJvp -f /root/etc.tar.xz /etc
 # 先找到我们要找的文件名，假设解开 shadow文件
 tar -jtv -f /root/etc.tar.bz2 | grep 'shadow'
 tar -jxv -f 打包文件.tar.bz2  待解开文件名
-tar -jxv -f  /root/etc.tar.bz2 etc/shadow 
+tar -jxv -f  /root/etc.tar.bz2 etc/shadow
 
 # 打包某目录但不含该目录下的某些文件的做法
 tar -jcv -f /root/system.tar.bz2 --exclude=/root/etc* \
@@ -8806,11 +9056,11 @@ find /etc -newer /etc/shadow
 tar -jcv -f /root/etc.newer.then.passwd.tar.bz2 \
 --newer-mtime="2025/06/06" /etc/*
 
-# 标准输入输出流重定向和管道符结合 
+# 标准输入输出流重定向和管道符结合
 # 将/etc整个目录一边打包一边在/tmp解开
 cd /tmp
 tar -czvf - /etc | tar -xvf -
-# 这个操作有点像cp -r /etc /tmp 
+# 这个操作有点像cp -r /etc /tmp
 </code></pre>
 <blockquote>
 <p>如果想要两行输入时，最后面加上反斜杠<code>\</code>并立刻按下[Enter]就能够到第二行继续输入了。</p>
